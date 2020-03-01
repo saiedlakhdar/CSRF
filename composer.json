@@ -1,0 +1,23 @@
+{
+  "name": "saiedlakhdar/CSRF",
+  "description": "Advanced &amp; smart CSRF protection library for PHP",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "saied lakhdar",
+      "email": "saied.lakhdar01@gmail.com"
+    }
+  ],
+  "type": "library",
+  "require": {
+    "php": ">=5.4"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "4.5.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "CSRF\\": "library/"
+    }
+  }
+}
