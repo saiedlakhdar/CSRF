@@ -2,5 +2,5 @@
 Advanced &amp; smart CSRF protection library for PHP 
 
 
-#License
+# License
 Licensed under MIT 
