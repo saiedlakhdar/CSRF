@@ -1,12 +1,34 @@
 <?php
 require_once "../vendor/autoload.php" ;
 use CSRF\Csrf ;
-if (isset($_POST['submit'])){
-    var_dump($_POST);
-}
+
+session_start() ;
 $ins = Csrf::getInstance() ;
-$ins->gToken('_token');
-var_dump($_SERVER['X-Forwarded-Proto']);
+$token = $ins->_token();
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+    $ins->checkPost() ;
+    $ins->check($ins->_tokenName,$_POST[$ins->_tokenName]) ;
+    var_dump($_POST[$ins->_tokenName]);
+    var_dump($ins->_tokenName);
+}
+var_dump($_SESSION[$ins->_tokenName]);
+
+if (isset($_POST['submit'])){
+//    $ins->checkPost() ;
+//    var_dump($ins->checkPost());
+}
+var_dump($ins->_token());
+var_dump(base64_decode($ins->_token()));
+var_dump(md5(Csrf::getRealIpAddr()));
+var_dump(substr(base64_decode($ins->_token()), 42,32));
+
+var_dump( (isset($_SERVER['HTTP_USER_AGENT'])) ? md5($_SERVER['HTTP_USER_AGENT']) : md5(null) );
+var_dump(substr(base64_decode($ins->gToken()), 10,32));
+
+echo "<hr>" ;
+
+
 ?>
 
 <!doctype html>
@@ -35,7 +57,7 @@ var_dump($_SERVER['X-Forwarded-Proto']);
         </tr>
         <tr>
             <td>
-                <input type="hidden" name="_token">
+                <?= $ins->inputToken() ;?>
             </td>
             <td colspan="2">
                 <input type="submit" name="submit">
