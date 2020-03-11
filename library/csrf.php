@@ -18,8 +18,13 @@ class Csrf
     private static $_instance     ;
     private $_session   = null    ;
     private $_prefix    = 'csrf_' ;
-    private $_timeslap  = 0       ;
-    private $_token     = null    ;
+    /**
+     * default timeslap oneday
+     * @var int
+     */
+    private $_timeslap = 0        ;
+    private $_token               ;
+    private $_passedToken         ;
     public $_tokenName            ;
 
     /**
@@ -61,20 +66,43 @@ class Csrf
      * @param string $key
      * @return string
      */
-    public function gToken( String $key = 'token',int $timeslap = 0)
+    public function _token( String $key = 'token',int $timeslap = 0)
     {
-        $this->_timeslap = $timeslap ;
         $this->_tokenName = $this->_prefix .$key ;
+        // check passed timeslap
+        if ($timeslap != 0 ){
+            $this->_timeslap = $timeslap ;
+        }
+
         $userAgent = (isset($_SERVER['HTTP_USER_AGENT'])) ? md5($_SERVER['HTTP_USER_AGENT']) : md5(null);
         $ip = md5(self::getRealIpAddr()) ;
         $sessionid = md5(session_id()) ;
         $token = base64_encode(time() . $userAgent . $ip . $sessionid ) ;
-        $_SESSION[$this->_prefix.$key] = $token ;
-        return $this->_token = $token ;
+
+        if (isset($_SESSION[$this->_tokenName])){
+            // Regenerate token if timeslap end
+//            if ($this->_passedToken){
+//                if ($this->_timeslap !=0 && (intval($this->_timeslap) + substr(base64_decode($this->_passedToken),0, 10)) < time()){
+//                    $token = base64_encode(time() . $userAgent . $ip . $sessionid ) ;
+//                    return $_SESSION[$this->_tokenName] = $this->_token = $token ;
+//                }
+//            }
+            return $this->_token = $_SESSION[$this->_tokenName] ;
+        }
+        $_SESSION[$this->_tokenName] = $this->_token = $token  ;
+        return $this->_token  ;
     }
-    
+
+    /**
+     * @param String $key
+     * @param String $token
+     * @return bool
+     * @throws \Exception
+     */
     public function check(String $key ,String $token  )
     {
+        $this->_passedToken = $token ;
+        $this->_token() ;
         if(!isset($_SESSION[$key] )) {
             throw new \Exception('Missing CSRF session token.') ;
         }
@@ -88,36 +116,36 @@ class Csrf
         }
         $ip = md5(self::getRealIpAddr()) ;
         if ($ip != substr(base64_decode($token),42,32)){
-            throw  new \Exception('Your IP address was changed try agian .') ;
+            throw  new \Exception('Your IP address was changed try agian.') ;
         }
         $sessid = md5(session_id()) ;
         if ($sessid != substr(base64_decode($token),74,32)){
-            throw  new \Exception('Your IP address was changed try agian .') ;
+            throw  new \Exception('Session Id was changed.') ;
         }
         if ($_SESSION[$key] != $token){
-            throw  new \Exception('Invalid CSRF token .') ;
+            throw  new \Exception('Invalid CSRF token.') ;
         }
-        if ((intval($this->_timeslap) + substr(base64_decode($token),0, 10)) < time()){
+
+        if ($this->_timeslap !=0 && (intval($this->_timeslap) + substr(base64_decode($token),0, 10)) < time()){
             throw new \Exception('CSRF token has Expired.') ;
         }
 
         return true ;
     }
 
-    public function _token()
-    {
-        if ($this->_token != null){
-            return $this->_token ;
-        }
-        return $this->gToken() ;
-    }
-
+    /**
+     *
+     */
     public function inputToken()
     {
-        $output = '<input type="hidden" name="'.$this->_tokenName.'" value="'.$this->_token.'">' ;
+        $output = '<input type="hidden" name="'.$this->_tokenName.'" value="'.$this->_token().'">' ;
         echo $output ;
     }
 
+    /**
+     * @return bool
+     * @throws \Exception
+     */
     public function checkPost()
     {
         if (isset($_POST[$this->_tokenName])){
@@ -127,6 +155,10 @@ class Csrf
 
     }
 
+    /**
+     * @return bool
+     * @throws \Exception
+     */
     public function checkGet()
     {
         if (isset($_GET[$this->_tokenName])){
@@ -134,6 +166,8 @@ class Csrf
         }
         throw new \Exception('Invalid CSRF token') ;
     }
+
+
     /**
      * TODO : Get ip from ip library
      * @return mixed
